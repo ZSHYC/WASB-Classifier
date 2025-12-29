@@ -39,3 +39,5 @@ If you find this work useful, please consider to cite our paper:
 ```
 
 
+修改之后 运行
+python main.py --config-name=eval dataset=tennis_predict model=wasb detector.model_path=../pretrained_weights/wasb_tennis_best.pth.tar runner.split=test runner.vis_result=True runner.vis_hm=True runner.vis_traj=True
