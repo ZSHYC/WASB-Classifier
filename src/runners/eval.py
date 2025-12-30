@@ -273,34 +273,7 @@ class VideosInferenceRunner(BaseRunner):
                 df.to_csv(csv_path, index=False)
                 log.info(f'Predictions for {match}_{clip_name} saved to {csv_path}')
 
-        # 为每个game保存独立的CSV文件（保持原有逻辑以处理汇总数据）
-        for match, predictions in game_predictions.items():
-            if predictions and not osp.exists(osp.join(self._output_dir, f'{match}_predictions.csv')):  # 只有当有预测结果且未单独保存时才保存汇总文件
-                csv_path = osp.join(self._output_dir, f'{match}_predictions.csv')
-                df = pd.DataFrame(predictions)
-                df.to_csv(csv_path, index=False)
-                log.info(f'Predictions for {match} saved to {csv_path}')
-
-            fp1_im_list, tmp = inference_video(detector, 
-                            tracker, 
-                            dataloader, 
-                            self._cfg,
-                            vis_frame_dir=vis_frame_dir, 
-                            vis_hm_dir=vis_hm_dir, 
-                            vis_traj_path=vis_traj_path,
-                            evaluator_all=evaluator, 
-                            gt=gt_dict)
-            fp1_im_list_dict[key] = fp1_im_list
-            
-            t_elapsed_all += tmp['t_elapsed']
-            num_frames_all += tmp['num_frames']
-            
-            # 将当前match的预测结果添加到字典中
-            if match not in game_predictions:
-                game_predictions[match] = []
-            game_predictions[match].extend(tmp['predictions'])
-
-        # 为每个game保存独立的CSV文件
+        # 为每个game保存独立的CSV文件（移除重复的处理逻辑部分，只保留汇总保存）
         for match, predictions in game_predictions.items():
             if predictions:  # 只有当有预测结果时才保存
                 csv_path = osp.join(self._output_dir, f'{match}_predictions.csv')
