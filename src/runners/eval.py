@@ -35,6 +35,8 @@ def inference_video(detector,
                     evaluator_all=None, 
                     gt=None,
                     dist_thresh=10.,
+                    match=None,
+                    clip_name=None,
 ):
 
     evaluator = None
@@ -94,6 +96,13 @@ def inference_video(detector,
             'visibility': 1 if visi_pred else 0,
             'score': score_pred
         })
+
+    # 保存当前视频片段的CSV文件
+    if match is not None and clip_name is not None and csv_predictions:
+        csv_path = osp.join(osp.dirname(vis_frame_dir) if vis_frame_dir else '.', f'{match}_{clip_name}_predictions.csv')
+        df = pd.DataFrame(csv_predictions)
+        df.to_csv(csv_path, index=False)
+        log.info(f'Predictions for {match}_{clip_name} saved to {csv_path}')
 
     cm_pred = plt.get_cmap('Reds', len(result_dict))
     cm_gt   = plt.get_cmap('Greens', len(result_dict))
@@ -183,7 +192,7 @@ def inference_video(detector,
     if evaluator is not None:
         evaluator.print_results(with_ap=False)
 
-    return fp1_im_list, {'t_elapsed': t_elapsed, 'num_frames': num_frames, 'predictions': csv_predictions}
+    return fp1_im_list, {'t_elapsed': t_elapsed, 'num_frames': num_frames}
 
 class VideosInferenceRunner(BaseRunner):
     def __init__(self,
@@ -225,8 +234,6 @@ class VideosInferenceRunner(BaseRunner):
         t_elapsed_all = 0.
         num_frames_all   = 0
         fp1_im_list_dict = {}
-        # 使用字典存储每个game的预测结果
-        game_predictions = {}
         
         for key, dataloader_and_gt in self._clip_loaders_and_gts.items():
             match, clip_name = key
@@ -255,31 +262,13 @@ class VideosInferenceRunner(BaseRunner):
                             vis_hm_dir=vis_hm_dir, 
                             vis_traj_path=vis_traj_path,
                             evaluator_all=evaluator, 
-                            gt=gt_dict)
+                            gt=gt_dict,
+                            match=match,
+                            clip_name=clip_name)
             fp1_im_list_dict[key] = fp1_im_list
             
             t_elapsed_all += tmp['t_elapsed']
             num_frames_all += tmp['num_frames']
-            
-            # 将当前match的预测结果添加到字典中
-            if match not in game_predictions:
-                game_predictions[match] = []
-            game_predictions[match].extend(tmp['predictions'])
-
-            # 在处理完当前game/clip后立即保存CSV文件
-            if tmp['predictions']:  # 只有当有预测结果时才保存
-                csv_path = osp.join(self._output_dir, f'{match}_{clip_name}_predictions.csv')
-                df = pd.DataFrame(tmp['predictions'])
-                df.to_csv(csv_path, index=False)
-                log.info(f'Predictions for {match}_{clip_name} saved to {csv_path}')
-
-        # 为每个game保存独立的CSV文件（移除重复的处理逻辑部分，只保留汇总保存）
-        for match, predictions in game_predictions.items():
-            if predictions:  # 只有当有预测结果时才保存
-                csv_path = osp.join(self._output_dir, f'{match}_predictions.csv')
-                df = pd.DataFrame(predictions)
-                df.to_csv(csv_path, index=False)
-                log.info(f'Predictions for {match} saved to {csv_path}')
 
         log.info('-- TOTAL --')
         evaluator.print_results(txt='{} @ dist_threshold={}'.format(self._cfg['model']['name'], evaluator.dist_threshold), 
