@@ -73,19 +73,27 @@ def find_wasb_results(dataset: str, game: str):
     vids = []
     if not base.exists():
         return imgs, vids
-    # files starting with game (e.g., game_2_Clip_1_predictions.csv or images)
-    for p in base.rglob(f"{game}*"):
-        if p.is_file():
-            if p.suffix.lower() in {'.jpg', '.jpeg', '.png'}:
-                imgs.append(p)
-            if p.suffix.lower() in {'.mp4', '.avi', '.mov', '.mkv'}:
-                vids.append(p)
-    # also search any images under directories named game
-    for d in base.rglob(game):
-        if d.is_dir():
-            imgs += find_images_in(d)
-            vids += find_videos_in(d)
-    return list(set(imgs)), list(set(vids))
+
+    # Look for directories whose names start with the game (e.g., game_28_Clip_1)
+    for p in base.iterdir():
+        if p.is_dir() and p.name.startswith(game):
+            imgs += find_images_in(p)
+            vids += find_videos_in(p)
+            # also check nested subfolders
+            for sub in p.rglob('*'):
+                if sub.is_dir():
+                    imgs += find_images_in(sub)
+                    vids += find_videos_in(sub)
+
+    # Also consider files directly under base that start with game
+    for f in base.glob(f"{game}*"):
+        if f.is_file():
+            if f.suffix.lower() in {'.jpg', '.jpeg', '.png'}:
+                imgs.append(f)
+            if f.suffix.lower() in {'.mp4', '.avi', '.mov', '.mkv'}:
+                vids.append(f)
+
+    return list({p for p in imgs}), list({p for p in vids})
 
 
 def find_originals(dataset: str, game: str):
