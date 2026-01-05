@@ -53,12 +53,6 @@ class ImageDataset(Dataset):
 
         self._hm_generator = select_heatmap_generator(cfg['dataloader']['heatmap'])
 
-        # Optional pre-resize to match training resolution (width, height)
-        try:
-            self._pre_resize = cfg['dataloader'].get('pre_resize', None)
-        except Exception:
-            self._pre_resize = None
-
         self._is_train      = is_train
 
         if is_train:
