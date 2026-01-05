@@ -9,8 +9,4 @@ postprocessor:
   scales: [0]
   blob_det_method: concomp
   use_hm_weight: True
-# Test-time augmentation options
-tta:
-        enabled: False
-        hflip: True
 

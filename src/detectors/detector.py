@@ -69,15 +69,6 @@ class TracknetV2Detector(object):
             raise KeyError('invalid dataset: {}'.format(postprocessor_name ))
         self._postprocessor = self.__postprocessor_factory[postprocessor_name](cfg)
 
-        # Test-time augmentation (TTA) settings (optional)
-        try:
-            self._tta_enabled = cfg['detector']['tta']['enabled']
-            self._tta_hflip = cfg['detector']['tta']['hflip']
-        except Exception:
-            self._tta_enabled = False
-            self._tta_hflip = False
-        if self._tta_enabled:
-            log.info(f'TTA enabled: hflip={self._tta_hflip}')
 
     @property
     def frames_in(self):
@@ -94,17 +85,6 @@ class TracknetV2Detector(object):
     def run_tensor(self, imgs, affine_mats):
         imgs  = imgs.to(self._device)
         preds = self._model(imgs)
-
-        # Simple TTA: horizontal flip averaging of logits
-        if self._tta_enabled and self._tta_hflip:
-            try:
-                imgs_flipped = torch.flip(imgs, dims=[-1])
-                preds_flipped = self._model(imgs_flipped)
-                # flip logits back horizontally
-                preds_flipped = torch.flip(preds_flipped, dims=[-1])
-                preds = (preds + preds_flipped) / 2.0
-            except Exception as e:
-                log.warning(f'TTA hflip failed, continuing without TTA: {e}')
 
         pp_results  = self._postprocessor.run(preds, affine_mats)
 
