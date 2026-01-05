@@ -5,6 +5,6 @@ model_path: # None
 step: 3
 postprocessor:
   name: deepball
-  score_threshold: 0.5
+  score_threshold: 0.3
   scales: [0]
 
