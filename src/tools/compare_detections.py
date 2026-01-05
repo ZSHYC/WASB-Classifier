@@ -11,11 +11,41 @@ DATASETS_DEFAULT = [
     "1",
     "2",
     "3",
-    "4",
-    "maibo_land",
-    "maibo_serve_left",
-    "maibo_serve_right",
+    "land",
+    # "maibo_land",
+    # "maibo_serve_left",
+    # "maibo_serve_right",
+    "qingzhen"
 ]
+
+
+def _extract_ints(s: str):
+    nums = re.findall(r"(\d+)", s)
+    return tuple(int(n) for n in nums) if nums else None
+
+
+def _dataset_sort_key(ds: str):
+    # If dataset name starts with a number, sort by that number first
+    m = re.match(r"^(\d+)$", ds)
+    if m:
+        return (0, int(m.group(1)), ds)
+    # otherwise put after numeric datasets and sort by name
+    return (1, ds)
+
+
+def _game_sort_key(game: str):
+    ints = _extract_ints(game)
+    if ints:
+        return (0, ints, game)
+    return (1, game)
+
+
+def _image_sort_key(img: str):
+    ints = _extract_ints(img)
+    if ints:
+        return (0, ints, img)
+    return (1, img)
+
 
 
 def find_wasb_detections(wasb_dataset_dir: Path):
@@ -205,7 +235,8 @@ def combine_and_write(out_csv: Path, datasets, wasb_root: Path, yolo_root: Path)
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
 
-        for ds in datasets:
+        # sort datasets with numeric-first order
+        for ds in sorted(datasets, key=_dataset_sort_key):
             wasb_map = find_wasb_detections(wasb_root / ds)
             yolo_map = find_yolo_detections(yolo_root / ds)
 
@@ -215,12 +246,13 @@ def combine_and_write(out_csv: Path, datasets, wasb_root: Path, yolo_root: Path)
                 # still allow empty dataset but continue
                 continue
 
-            for game in sorted(games):
+            # sort games by numeric components when possible
+            for game in sorted(games, key=_game_sort_key):
                 imgs = set()
                 imgs.update(wasb_map.get(game, {}).keys())
                 imgs.update(yolo_map.get(game, {}).keys())
 
-                for img in sorted(imgs):
+                for img in sorted(imgs, key=_image_sort_key):
                     wasb_det = wasb_map.get(game, {}).get(img, False)
                     yolo_det = yolo_map.get(game, {}).get(img, False)
 
@@ -253,7 +285,7 @@ def combine_and_write(out_csv: Path, datasets, wasb_root: Path, yolo_root: Path)
     with summary_path.open("w", newline="", encoding="utf-8") as sf:
         s_writer = csv.writer(sf)
         s_writer.writerow(["dataset", "both", "only_wasb", "only_yolo", "neither"])
-        for ds in datasets:
+        for ds in sorted(datasets, key=_dataset_sort_key):
             s = totals.get(ds, {})
             s_writer.writerow([
                 ds,

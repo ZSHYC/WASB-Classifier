@@ -5,6 +5,6 @@ datasets/
 wasb_outputs/
 yolo_output/
 output/
-reports/
 *.zip
 outputs/
+reports/
