@@ -131,35 +131,25 @@ def inference_video(detector,
             vis_frame_path = osp.join(vis_frame_dir, osp.basename(img_path)) if vis_frame_dir is not None else None
             vis_gt         = cv2.imread(img_path)
             vis_pred       = cv2.imread(img_path)
+            # 只绘制“当前帧”的预测/真实值点（不叠加历史轨迹）
+            color_pred = (int(cm_pred(cnt)[2]*255), int(cm_pred(cnt)[1]*255), int(cm_pred(cnt)[0]*255))
+            color_gt   = (int(cm_gt(cnt)[2]*255), int(cm_gt(cnt)[1]*255), int(cm_gt(cnt)[0]*255))
 
-            for cnt2, img_path2 in enumerate(result_dict.keys()):
-                if cnt2 > cnt:
-                    break
+            # 只有在有真实值数据时才绘制真实值
+            if center_gt is not None:
+                vis_gt = draw_frame(
+                    vis_gt,
+                    center=center_gt,
+                    color=color_gt,
+                    radius=8,
+                )
 
-                x_pred = result_dict[img_path2]['x']
-                y_pred = result_dict[img_path2]['y']
-                visi_pred  = result_dict[img_path2]['visi']
-                score_pred = result_dict[img_path2]['score']
-                
-                # 处理没有真实值数据的情况
-                center_gt = None
-                if gt is not None:
-                    center_gt = gt[img_path2]
-
-                color_pred = (int(cm_pred(cnt2)[2]*255), int(cm_pred(cnt2)[1]*255), int(cm_pred(cnt2)[0]*255))
-                color_gt   = (int(cm_gt(cnt2)[2]*255), int(cm_gt(cnt2)[1]*255), int(cm_gt(cnt2)[0]*255))
-                
-                # 只有在有真实值数据时才绘制真实值
-                if center_gt is not None:
-                    vis_gt = draw_frame(vis_gt, 
-                                center = center_gt, 
-                                color = color_gt,
-                                radius=8)
-
-                vis_pred   = draw_frame(vis_pred, 
-                                    center = Center(is_visible=visi_pred, x=x_pred, y=y_pred), 
-                                    color = color_pred,
-                                    radius=8)
+            vis_pred = draw_frame(
+                vis_pred,
+                center=Center(is_visible=visi_pred, x=x_pred, y=y_pred),
+                color=color_pred,
+                radius=8,
+            )
 
             vis = np.hstack((vis_gt, vis_pred))
             # 确保目录存在后再保存图像
