@@ -2,10 +2,10 @@ defaults:
         - _self_
 name: tracknetv2
 model_path: # None
-step: 3
+step: 1
 postprocessor:
   name: tracknetv2
-  score_threshold: 0.5
+  score_threshold: 0.4
   scales: [0]
   blob_det_method: concomp
   use_hm_weight: True
