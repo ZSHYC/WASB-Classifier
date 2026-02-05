@@ -37,14 +37,3 @@ If you find this work useful, please consider to cite our paper:
 	year={2023}
 }
 ```
-
-
-修改之后 运行
-python main.py --config-name=eval dataset=tennis_predict model=wasb detector.model_path=../pretrained_weights/wasb_tennis_best.pth.tar runner.split=test runner.vis_result=True runner.vis_hm=True runner.vis_traj=True
-
-## WASB FLOPs & Params Report
-
-- 快速摘要请参见报告: [reports/wasb_flops_summary.md](reports/wasb_flops_summary.md)
-- 逐层明细 CSV: [reports/wasb_flops_per_layer.csv](reports/wasb_flops_per_layer.csv)
-
-（报告由 `src/tools/compute_flops.py` 自动生成，输入尺寸：1920×1080，frames_in=3）
