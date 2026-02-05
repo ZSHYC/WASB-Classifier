@@ -71,7 +71,7 @@ class PatchDataset(Dataset):
         return img, target
 
 
-def get_default_transform(is_train, patch_size=32):
+def get_default_transform(is_train, patch_size=96):
     """默认数据增强：训练时随机水平翻转，测试时仅归一化。输入为 PIL 或 ndarray。"""
     import torchvision.transforms as T
     if is_train:

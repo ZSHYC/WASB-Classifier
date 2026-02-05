@@ -6,7 +6,7 @@ import torch.nn as nn
 
 
 class PatchCNN(nn.Module):
-    """轻量级 patch 二分类 CNN，适用于 32x32 输入。"""
+    """轻量级 patch 二分类 CNN，适用于 32x32 或类似小尺寸输入（如 64x64, 96x96）。"""
 
     def __init__(self, in_channels=3, num_classes=2, base_channels=32):
         super().__init__()

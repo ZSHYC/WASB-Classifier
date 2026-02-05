@@ -19,7 +19,7 @@ python ../fp_filter/extract_patches.py ^
   "outputs/main/2026-02-05_11-10-50/match1_clip1_predictions.csv" ^
   --dataset-root ../datasets/tennis_predict ^
   --output-dir outputs/patches_match1_clip1 ^
-  --patch-size 32
+  --patch-size 96
 ```
 
 - **第一个参数**：预测结果 CSV 的路径。
@@ -87,12 +87,12 @@ python ../fp_filter/train_fp_filter.py ^
   --epochs 50 ^
   --batch-size 64 ^
   --lr 1e-3 ^
-  --patch-size 32
+  --patch-size 96
 ```
 
 - **`--manifest`**：已标注 label 的 manifest 路径。
 - **`--out-dir`**：保存 checkpoint 和 `history.json` 的目录。
-- **`--patch-size`**：与第一步使用的 patch 尺寸一致（默认 32）。
+- **`--patch-size`**：与第一步使用的 patch 尺寸一致（如 96）。
 
 ### 3. 输出
 
@@ -104,7 +104,7 @@ python ../fp_filter/train_fp_filter.py ^
 
 ## 模型与数据说明
 
-- **Patch 尺寸**：默认 32×32，兼顾小目标与常见 CNN 下采样。可在第一步、第二步用同一 `--patch-size` 修改。
+- **Patch 尺寸**：默认 96×96。可在第一步、第二步用同一 `--patch-size` 修改。
 - **二分类网络**：`tools/fp_filter/model.py` 中的轻量 CNN（若干 Conv+BN+ReLU+Pool，最后全连接 2 类）。如需更大/更小模型，可在此文件内修改或替换。
 - **数据增强**：训练时仅做随机水平翻转；如需更多增强，可修改 `fp_filter/dataset.py` 中的 `get_default_transform`。
 

@@ -37,7 +37,7 @@ except ImportError:
     from model import build_model
 
 # 计算机视觉中常用的小目标 patch 尺寸
-DEFAULT_PATCH_SIZE = 32
+DEFAULT_PATCH_SIZE = 96
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 

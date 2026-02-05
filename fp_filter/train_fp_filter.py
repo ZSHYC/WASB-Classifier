@@ -72,7 +72,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=64, help="批大小")
     parser.add_argument("--lr", type=float, default=1e-3, help="学习率")
     parser.add_argument("--seed", type=int, default=42, help="随机种子")
-    parser.add_argument("--patch-size", type=int, default=32, help="与第一步提取的 patch 尺寸一致，仅用于 transform")
+    parser.add_argument("--patch-size", type=int, default=96, help="与第一步提取的 patch 尺寸一致，仅用于 transform")
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
