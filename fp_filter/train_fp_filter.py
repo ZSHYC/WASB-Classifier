@@ -52,6 +52,8 @@ def evaluate(model, loader, criterion, device):
     total_loss = 0.0
     correct = 0
     total = 0
+    # 统计混淆矩阵：TP, TN, FP, FN (假设 1=球, 0=非球)
+    tp, tn, fp, fn = 0, 0, 0, 0
     for x, y in loader:
         x, y = x.to(device), y.to(device)
         logits = model(x)
@@ -60,7 +62,31 @@ def evaluate(model, loader, criterion, device):
         pred = logits.argmax(dim=1)
         correct += (pred == y).sum().item()
         total += y.size(0)
-    return total_loss / max(len(loader), 1), correct / max(total, 1)
+        
+        # 计算混淆矩阵
+        for p, t in zip(pred, y):
+            if t == 1 and p == 1:
+                tp += 1
+            elif t == 0 and p == 0:
+                tn += 1
+            elif t == 0 and p == 1:
+                fp += 1
+            elif t == 1 and p == 0:
+                fn += 1
+    
+    acc = correct / max(total, 1)
+    precision = tp / max(tp + fp, 1)
+    recall = tp / max(tp + fn, 1)
+    f1 = 2 * precision * recall / max(precision + recall, 1e-8)
+    
+    return {
+        'loss': total_loss / max(len(loader), 1),
+        'acc': acc,
+        'tp': tp, 'tn': tn, 'fp': fp, 'fn': fn,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1
+    }
 
 
 def main():
@@ -101,44 +127,94 @@ def main():
     train_loader = DataLoader(train_sub, batch_size=args.batch_size, shuffle=True, num_workers=0, pin_memory=True)
     val_loader = DataLoader(val_sub, batch_size=args.batch_size, shuffle=False, num_workers=0)
 
+    # ----------------------------------------------------
+    # 新增：计算类别权重以解决样本不平衡问题 (High FP / Low TN)
+    # ----------------------------------------------------
+    all_labels = full_dataset.df["label"].values
+    n_neg = (all_labels == 0).sum()
+    n_pos = (all_labels == 1).sum()
+    print(f"Dataset stats: Total={n}, Pos(1)={n_pos}, Neg(0)={n_neg}")
+    if n_neg == 0 or n_pos == 0:
+        print("警告: 某一类样本数为0，无法应用类别权重。")
+        class_weights = None
+    else:
+        # 权重计算公式: Total / (NumClasses * Count)
+        w0 = n / (2.0 * n_neg)
+        w1 = n / (2.0 * n_pos)
+        class_weights = torch.tensor([w0, w1], dtype=torch.float).to(device)
+        print(f"Applying Class Weights: Neg(0)={w0:.4f}, Pos(1)={w1:.4f}")
+
     model = build_model().to(device)
-    criterion = nn.CrossEntropyLoss()
+    # 将计算出的权重传入 Loss
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     # Some PyTorch versions don't accept the `verbose` kwarg here; omit it for compatibility.
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=5)
 
-    best_acc = 0.0
-    history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
+    best_f1 = 0.0
+    history = {
+        "train_loss": [], "train_acc": [], "train_precision": [], "train_recall": [], "train_f1": [],
+        "val_loss": [], "val_acc": [], "val_precision": [], "val_recall": [], "val_f1": [],
+        "val_tp": [], "val_tn": [], "val_fp": [], "val_fn": []
+    }
 
     for epoch in range(1, args.epochs + 1):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_acc = evaluate(model, val_loader, criterion, device)
-        scheduler.step(val_acc)
+        val_metrics = evaluate(model, val_loader, criterion, device)
+        scheduler.step(val_metrics['f1'])
 
         history["train_loss"].append(train_loss)
         history["train_acc"].append(train_acc)
-        history["val_loss"].append(val_loss)
-        history["val_acc"].append(val_acc)
+        history["val_loss"].append(val_metrics['loss'])
+        history["val_acc"].append(val_metrics['acc'])
+        history["val_precision"].append(val_metrics['precision'])
+        history["val_recall"].append(val_metrics['recall'])
+        history["val_f1"].append(val_metrics['f1'])
+        history["val_tp"].append(val_metrics['tp'])
+        history["val_tn"].append(val_metrics['tn'])
+        history["val_fp"].append(val_metrics['fp'])
+        history["val_fn"].append(val_metrics['fn'])
+        # 训练集指标暂时用占位符（避免增加计算开销，如需要可改为调用 evaluate）
+        history["train_precision"].append(0.0)
+        history["train_recall"].append(0.0)
+        history["train_f1"].append(0.0)
 
-        print(f"Epoch {epoch}/{args.epochs}  train_loss={train_loss:.4f} train_acc={train_acc:.4f}  val_loss={val_loss:.4f} val_acc={val_acc:.4f}")
+        print(f"Epoch {epoch}/{args.epochs}  train_loss={train_loss:.4f} train_acc={train_acc:.4f}  "
+              f"val_loss={val_metrics['loss']:.4f} val_acc={val_metrics['acc']:.4f} "
+              f"val_p={val_metrics['precision']:.4f} val_r={val_metrics['recall']:.4f} val_f1={val_metrics['f1']:.4f}")
+        print(f"  TP={val_metrics['tp']} TN={val_metrics['tn']} FP={val_metrics['fp']} FN={val_metrics['fn']}")
 
-        if val_acc > best_acc:
-            best_acc = val_acc
+        if val_metrics['f1'] > best_f1:
+            best_f1 = val_metrics['f1']
             ckpt_path = osp.join(args.out_dir, "best.pth")
             torch.save({
                 "epoch": epoch,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
-                "val_acc": val_acc,
+                "val_f1": val_metrics['f1'],
+                "val_acc": val_metrics['acc'],
+                "val_metrics": val_metrics,
                 "args": vars(args),
             }, ckpt_path)
-            print(f"  保存最佳模型: {ckpt_path}")
+            print(f"  保存最佳模型 (f1={best_f1:.4f}): {ckpt_path}")
+
+        # 保存本轮模型
+        epoch_ckpt_path = osp.join(args.out_dir, f"epoch_{epoch}.pth")
+        torch.save({
+            "epoch": epoch,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "val_f1": val_metrics['f1'],
+            "val_acc": val_metrics['acc'],
+            "val_metrics": val_metrics,
+            "args": vars(args),
+        }, epoch_ckpt_path)
 
     torch.save({"epoch": args.epochs, "model_state_dict": model.state_dict(), "args": vars(args)},
                osp.join(args.out_dir, "last.pth"))
     with open(osp.join(args.out_dir, "history.json"), "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2)
-    print(f"训练完成，最佳验证准确率: {best_acc:.4f}")
+    print(f"训练完成，最佳验证 F1: {best_f1:.4f}")
 
 
 if __name__ == "__main__":
