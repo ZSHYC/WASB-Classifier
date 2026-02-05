@@ -44,18 +44,24 @@ python ../fp_filter/extract_patches.py ^
 
 使用 `fp_filter/label_patches.py` 工具，逐张查看图片并按键标注，效率极高。
 
-在 **`src`** 目录下执行：
+在 **项目根目录** 下执行：
 
 ```powershell
-python ../fp_filter/label_patches.py ^
-    --manifest outputs/patches_match1_clip1/manifest.csv
+python fp_filter/label_patches.py --manifest fp_filter/patch_outputs/patches_match1_clip1/manifest.csv --size 512
+```
+
+若需要从第 100 张图片开始标注（续接之前的进度）：
+
+```powershell
+python fp_filter/label_patches.py --manifest fp_filter/patch_outputs/patches_match1_clip1/manifest.csv --size 512 --start-from 100
 ```
 
 **操作方法**：
-- **按 `1`**：标记为 **球 (TP)**，自动跳转下一张。
-- **按 `0`**：标记为 **非球 (FP)**，自动跳转下一张。
+- **按 `1`**：标记为 **球 (TP)**，自动保存并跳转下一张。
+- **按 `0`**：标记为 **非球 (FP)**，自动保存并跳转下一张。
 - **按 `B`**：回退到上一张（如果标错了）。
 - **按 `Q`**：保存并退出。
+- **UI 显示**：界面上会实时显示当前图片的标记状态（None / Ball(1) / Background(0)）。
 
 #### 方式 B：手动编辑 CSV
 

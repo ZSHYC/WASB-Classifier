@@ -1,10 +1,10 @@
 """
 第二步：使用标注好的 manifest（含 label 列）训练二分类模型，用于筛除 FP。
 
-使用示例（在 src 目录下执行）：
-python ../fp_filter/train_fp_filter.py ^
-  --manifest outputs/patches_match1_clip1/manifest.csv ^
-  --out-dir outputs/fp_filter ^
+使用示例（在 fp_filter 目录下执行）：cd fp_filter
+python train_fp_filter.py ^
+  --manifest patch_outputs/patches_match1_clip1/manifest.csv ^
+  --out-dir patch_outputs/fp_filter ^
   --val-ratio 0.2 ^
   --epochs 50
 """
@@ -18,13 +18,13 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-# 保证从项目根或 src 运行都能找到 tools（在 import 前执行）
+# 保证从项目根或 src 运行都能找到 fp_filter（在 import 前执行）
 _src = osp.normpath(osp.join(osp.dirname(osp.abspath(__file__)), ".."))
 if _src not in sys.path:
     sys.path.insert(0, _src)
 
-from tools.fp_filter.dataset import PatchDataset, get_default_transform
-from tools.fp_filter.model import build_model
+from fp_filter.dataset import PatchDataset, get_default_transform
+from fp_filter.model import build_model
 
 
 def train_one_epoch(model, loader, criterion, optimizer, device):
@@ -104,7 +104,8 @@ def main():
     model = build_model().to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=5, verbose=True)
+    # Some PyTorch versions don't accept the `verbose` kwarg here; omit it for compatibility.
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=5)
 
     best_acc = 0.0
     history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}

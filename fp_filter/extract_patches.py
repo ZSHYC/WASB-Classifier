@@ -2,8 +2,8 @@
 第一步：根据检测结果 CSV（visibility=1）从原始数据集中以 (x,y) 为中心截取 patch，
 并生成 manifest 供后续标注与二分类训练使用。
 
-使用示例（在 src 目录下执行）：
- python extract_patches.py "../src/outputs/main/2026-02-05_14-13-13/match1_clip1_predictions.csv" --dataset-root ../datasets/tennis_predict --output-dir patch_outputs/patches_match1_clip1 --patch-size 96
+使用示例（在 fp_filter 下执行）：
+ python extract_patches.py "../src/outputs/main/2026-02-05_14-13-13/match1_clip1_predictions.csv" --dataset-root ../datasets/tennis_predict --output-dir patch_outputs/patches_match1_clip1 --patch-size 128
 """
 import os
 import os.path as osp
@@ -15,7 +15,7 @@ import cv2
 
 
 # 计算机视觉中常用的小目标 patch 尺寸（便于下采样且保留上下文）
-DEFAULT_PATCH_SIZE = 96
+DEFAULT_PATCH_SIZE = 128
 
 
 def _parse_match_clip_from_csv_basename(csv_basename):
