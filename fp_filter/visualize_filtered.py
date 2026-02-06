@@ -22,7 +22,7 @@ python visualize_filtered.py ^
     --output-video "patch_outputs/filtered_result.mp4" ^
     --fps 25
     
-python visualize_filtered.py --csv "../src/outputs/main/2026-02-06_11-05-25/match1_clip1_predictions.csv" --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" --dataset-root "../src/outputs/main/2026-02-06_11-05-25" --output-video "patch_outputs/filtered_result.mp4" --fps 25
+python visualize_filtered.py --csv "../src/outputs/main/2026-02-06_12-24-13/match1_clip1_predictions.csv" --filtered-csv "patch_outputs/patches_prediction2/match1_clip1_predictions_filtered.csv" --dataset-root "../src/outputs/main/2026-02-06_12-24-13" --output-video "patch_outputs/filtered_result2.mp4" --fps 25
 """
 
 import os
