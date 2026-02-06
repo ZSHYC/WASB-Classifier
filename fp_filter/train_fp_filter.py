@@ -1,7 +1,7 @@
 """
 第二步：使用标注好的 manifest（含 label 列）训练二分类模型，用于筛除 FP。
 
-使用示例（在 fp_filter 目录下执行）：cd fp_filter
+使用示例（在 fp_filter 目录下执行）：cd fp_filter(别忘了！)
 python train_fp_filter.py ^
   --manifest patch_outputs/patches_match1_clip1/manifest.csv ^
   --out-dir patch_outputs/fp_filter ^
@@ -98,7 +98,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=64, help="批大小")
     parser.add_argument("--lr", type=float, default=1e-3, help="学习率")
     parser.add_argument("--seed", type=int, default=42, help="随机种子")
-    parser.add_argument("--patch-size", type=int, default=96, help="与第一步提取的 patch 尺寸一致，仅用于 transform")
+    parser.add_argument("--patch-size", type=int, default=128, help="与第一步提取的 patch 尺寸一致，仅用于 transform")
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)

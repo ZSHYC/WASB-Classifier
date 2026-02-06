@@ -4,13 +4,13 @@
 若模型判定为非球（FP），则将其 visibility 置为 0 或降低置信度。
 
 使用示例：
-Step 1: 确保已训练好模型（例如 outputs/fp_filter/best.pth）
+Step 1: 确保已训练好模型（例如 patch_outputs/fp_filter/best.pth）
 Step 2: 运行以下命令（请根据实际路径修改参数）
 
 python fp_filter/inference.py ^
     --csv "src/outputs/main/2026-02-05_11-10-50/match1_clip1_predictions.csv" ^
     --dataset-root "datasets/tennis_predict" ^
-    --model "fp_filter/outputs/fp_filter/best.pth" ^
+    --model "patch_outputs/fp_filter/best.pth" ^
     --output "src/outputs/main/2026-02-05_11-10-50/match1_clip1_predictions_filtered.csv" ^
     --threshold 0.5
 """
@@ -37,7 +37,7 @@ except ImportError:
     from model import build_model
 
 # 计算机视觉中常用的小目标 patch 尺寸
-DEFAULT_PATCH_SIZE = 96
+DEFAULT_PATCH_SIZE = 128
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -50,7 +50,7 @@ def _parse_match_clip_from_csv_basename(csv_basename):
     return None, None
 
 
-def get_transform(patch_size=32):
+def get_transform(patch_size = DEFAULT_PATCH_SIZE):
     """推理时的预处理：ToTensor + 归一化"""
     return T.Compose([
         T.ToTensor(),
@@ -75,6 +75,8 @@ def run_inference(
     
     # 1. 加载模型
     device = torch.device(device_name if torch.cuda.is_available() else "cpu")
+    print(f"使用设备: {device}")
+    
     model = build_model(num_classes=2).to(device)
     
     if not osp.isfile(model_path):
