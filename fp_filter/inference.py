@@ -11,11 +11,11 @@ Step 2: 运行以下命令（请根据实际路径修改参数）
 python inference.py ^
     --csv "../src/outputs/main/2026-02-06_12-24-13/match1_clip1_predictions.csv" ^
     --dataset-root "../datasets/tennis_predict" ^
-    --model "patch_outputs/fp_filter/best.pth" ^
+    --model "patch_outputs/model_resnet/best.pth" ^
     --output "patch_outputs/patches_prediction2/match1_clip1_predictions_filtered.csv" ^
     --threshold 0.5
     
-python inference.py --csv "../src/outputs/main/2026-02-06_12-24-13/match1_clip1_predictions.csv" --dataset-root "../datasets/tennis_predict" --model "patch_outputs/fp_filter/best.pth" --output "patch_outputs/patches_prediction2/match1_clip1_predictions_filtered.csv" --threshold 0.4
+python inference.py --csv "../src/outputs/main/2026-02-06_12-24-13/match1_clip1_predictions.csv" --dataset-root "../datasets/tennis_predict" --model "patch_outputs/model_resnet/best.pth" --output "patch_outputs/patches_prediction2/match1_clip1_predictions_filtered.csv" --threshold 0.4
 """
 
 import os

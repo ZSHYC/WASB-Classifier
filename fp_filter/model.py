@@ -1,6 +1,5 @@
 """
 二分类网络：使用预训练的 ResNet-18 进行迁移学习。
-相比简单的 CNN，预训练模型能提取更丰富的纹理和语义特征，显著提升分类精度。
 """
 import torch
 import torch.nn as nn

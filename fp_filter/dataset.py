@@ -71,16 +71,43 @@ class PatchDataset(Dataset):
         return img, target
 
 
-def get_default_transform(is_train, patch_size=96):
-    """默认数据增强：训练时随机水平翻转，测试时仅归一化。输入为 PIL 或 ndarray。"""
+def get_default_transform(is_train, patch_size=128):
+    """默认数据增强：训练时使用更强的数据增强以提高对困难负样本的鲁棒性。
+    - 训练：随机缩放裁剪、翻转、旋转、颜色扰动、可选高斯模糊、随机灰度、归一化、随机擦除
+    - 验证：统一 resize + 归一化
+
+    输入接受 PIL.Image 或 ndarray（会被上层转换为 PIL 传入）。
+    """
     import torchvision.transforms as T
+
     if is_train:
-        return T.Compose([
+        aug_list = [
+            # 随机裁剪并缩放到目标尺寸，保留轻微纵横比变化
+            T.RandomResizedCrop(patch_size, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
             T.RandomHorizontalFlip(p=0.5),
+            # 小角度旋转，覆盖轻微姿态变化
+            T.RandomRotation(degrees=15),
+            # 颜色扰动（亮度/对比度/饱和度/色相）
+            T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.02),
+        ]
+
+        # 可选高斯模糊（较新 torchvision 才有 GaussianBlur）
+        if hasattr(T, 'GaussianBlur'):
+            aug_list.append(T.RandomApply([T.GaussianBlur(kernel_size=3)], p=0.3))
+
+        aug_list += [
+            T.RandomGrayscale(p=0.02),
             T.ToTensor(),
             T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
-        ])
+            # 在 tensor 上进行随机擦除以模拟 occlusion / 丢帧
+            T.RandomErasing(p=0.2, scale=(0.02, 0.2), ratio=(0.3, 3.3), value=0),
+        ]
+
+        return T.Compose(aug_list)
+
+    # 验证/推理阶段：统一大小并归一化
     return T.Compose([
+        T.Resize((patch_size, patch_size)),
         T.ToTensor(),
         T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
     ])

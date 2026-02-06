@@ -4,9 +4,11 @@
 使用示例（在 fp_filter 目录下执行）：cd fp_filter(别忘了！)
 python train_fp_filter.py ^
   --manifest patch_outputs/patches_match1_clip1/manifest.csv ^
-  --out-dir patch_outputs/fp_filter ^
+  --out-dir patch_outputs/model_resnet ^
   --val-ratio 0.2 ^
   --epochs 50
+  
+python train_fp_filter.py --manifest patch_outputs/patches_match1_clip1/manifest.csv --out-dir patch_outputs/model_resnet --epochs 60
 """
 import os
 import sys
