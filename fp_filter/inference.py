@@ -7,11 +7,12 @@
 Step 1: 确保已训练好模型（例如 patch_outputs/fp_filter/best.pth）
 Step 2: 运行以下命令（请根据实际路径修改参数）
 
-python fp_filter/inference.py ^
-    --csv "src/outputs/main/2026-02-05_11-10-50/match1_clip1_predictions.csv" ^
-    --dataset-root "datasets/tennis_predict" ^
+默认文件夹在fp_filter下执行：cd fp_filter(别忘了！)
+python inference.py ^
+    --csv "../src/outputs/main/2026-02-06_11-05-25/match1_clip1_predictions.csv" ^
+    --dataset-root "../datasets/tennis_predict" ^
     --model "patch_outputs/fp_filter/best.pth" ^
-    --output "src/outputs/main/2026-02-05_11-10-50/match1_clip1_predictions_filtered.csv" ^
+    --output "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" ^
     --threshold 0.5
 """
 
@@ -84,7 +85,9 @@ def run_inference(
         
     checkpoint = torch.load(model_path, map_location=device)
     # 支持加载完整模型或仅 state_dict
-    if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        model.load_state_dict(checkpoint["model_state_dict"])
+    elif isinstance(checkpoint, dict) and "state_dict" in checkpoint:
         model.load_state_dict(checkpoint["state_dict"])
     elif isinstance(checkpoint, dict) and "model" in checkpoint:
         model.load_state_dict(checkpoint["model"])
