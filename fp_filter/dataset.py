@@ -41,13 +41,35 @@ class PatchDataset(Dataset):
     def __getitem__(self, index):
         row = self.df.iloc[index]
         path = row["patch_path"]
-        if not osp.isfile(path) and not osp.isabs(path):
-            path = osp.join(self.manifest_dir, path)
-        if not osp.isfile(path):
-            raise FileNotFoundError(f"patch 文件不存在: {path}")
-        img = cv2.imread(path)
+        
+        # 尝试多种路径解析方式
+        final_path = None
+        if osp.isabs(path):
+            # 绝对路径
+            final_path = path
+        elif osp.isfile(path):
+            # 相对于当前工作目录
+            final_path = path
+        elif osp.isfile(osp.join(self.manifest_dir, path)):
+            # 相对于 manifest 所在目录
+            final_path = osp.join(self.manifest_dir, path)
+        else:
+            # 尝试智能解析：去掉路径中可能重复的部分
+            # 例如 manifest 在 patch_outputs/patches_train1/，path 是 patch_outputs/patches_match1_clip1/xxx.png
+            # 实际文件可能在 patch_outputs/patches_train1/patches_match1_clip1/xxx.png
+            parts = path.replace('/', osp.sep).split(osp.sep)
+            for i in range(len(parts)):
+                candidate = osp.join(self.manifest_dir, *parts[i:])
+                if osp.isfile(candidate):
+                    final_path = candidate
+                    break
+        
+        if final_path is None or not osp.isfile(final_path):
+            raise FileNotFoundError(f"patch 文件不存在: {path}\n  尝试了相对于 manifest 目录: {self.manifest_dir}")
+        
+        img = cv2.imread(final_path)
         if img is None:
-            raise IOError(f"无法读取: {path}")
+            raise IOError(f"无法读取: {final_path}")
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         label = int(row["label"])
 

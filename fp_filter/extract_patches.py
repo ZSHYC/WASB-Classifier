@@ -2,8 +2,8 @@
 第一步：根据检测结果 CSV（visibility=1）从原始数据集中以 (x,y) 为中心截取 patch，
 并生成 manifest 供后续标注与二分类训练使用。
 
-使用示例（在 fp_filter 下执行）： cd fp_filter(别忘了！)
- python extract_patches.py "../src/outputs/main/2026-02-06_17-06-39/match1_clip1_predictions.csv" --dataset-root ../datasets/tennis_predict --output-dir patch_outputs/patches_train3 --patch-size 128
+使用示例（在 fp_filter 下执行）： cd fp_filter(别忘了！) 千万别忘了改文件名！不然就覆盖了！！！
+ python extract_patches.py "../src/outputs/main/2026-02-06_18-14-50/match1_clip1_predictions.csv" --dataset-root ../datasets/tennis_predict --output-dir patch_outputs/patches_train5 --patch-size 128
 """
 import os
 import os.path as osp

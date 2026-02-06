@@ -12,10 +12,10 @@ python inference.py ^
     --csv "../src/outputs/main/2026-02-06_16-46-34/match1_clip1_predictions.csv" ^
     --dataset-root "../datasets/tennis_predict" ^
     --model "patch_outputs/model_resnet/best.pth" ^
-    --output "patch_outputs/patches_prediction2/match1_clip1_predictions_filtered.csv" ^
+    --output "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" ^
     --threshold 0.5
     
-python inference.py --csv "../src/outputs/main/2026-02-06_16-46-34/match1_clip1_predictions.csv" --dataset-root "../datasets/tennis_predict" --model "patch_outputs/model_resnet/best.pth" --output "patch_outputs/patches_prediction2/match1_clip1_predictions_filtered.csv" --threshold 0.4
+python inference.py --csv "../src/outputs/main/2026-02-06_18-14-50/match1_clip1_predictions.csv" --dataset-root "../datasets/tennis_predict" --model "patch_outputs/model_resnet/best.pth" --output "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" --threshold 0.5
 """
 
 import os
@@ -54,8 +54,9 @@ def _parse_match_clip_from_csv_basename(csv_basename):
 
 
 def get_transform(patch_size = DEFAULT_PATCH_SIZE):
-    """推理时的预处理：ToTensor + 归一化"""
+    """推理时的预处理：Resize + ToTensor + 归一化（必须与训练时验证集的 transform 一致）"""
     return T.Compose([
+        T.Resize((patch_size, patch_size)),  # 关键：与训练时验证集保持一致
         T.ToTensor(),
         T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
     ])
@@ -175,14 +176,15 @@ def run_inference(
         x2 = x1 + patch_size
         y2 = y1 + patch_size
         
-        # 边界填充处理
+        # 边界填充处理（使用 BORDER_REPLICATE 与训练数据生成保持一致）
         pad_l = max(0, -x1)
         pad_t = max(0, -y1)
         pad_r = max(0, x2 - w)
         pad_b = max(0, y2 - h)
         
         if any([pad_l, pad_t, pad_r, pad_b]):
-            patch = cv2.copyMakeBorder(img, pad_t, pad_b, pad_l, pad_r, cv2.BORDER_CONSTANT, value=(0,0,0))
+            # ✅ 改为 BORDER_REPLICATE，与 extract_patches.py 保持一致
+            patch = cv2.copyMakeBorder(img, pad_t, pad_b, pad_l, pad_r, cv2.BORDER_REPLICATE)
             # 坐标平移
             x1 += pad_l
             y1 += pad_t
@@ -192,8 +194,9 @@ def run_inference(
         else:
             patch = img[y1:y2, x1:x2]
             
-        if patch.shape[0] != patch_size or patch.shape[1] != patch_size:
-            patch = cv2.resize(patch, (patch_size, patch_size))
+        # 注意：不在这里 resize，而是在 transform 中统一处理
+        # if patch.shape[0] != patch_size or patch.shape[1] != patch_size:
+        #     patch = cv2.resize(patch, (patch_size, patch_size))
             
         # 转换并推理
         patch_rgb = cv2.cvtColor(patch, cv2.COLOR_BGR2RGB)
@@ -228,7 +231,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset-root", required=True, help="原始数据集根目录")
     parser.add_argument("--model", required=True, help="训练好的二分类模型路径 (.pth)")
     parser.add_argument("--output", required=True, help="输出过滤后的 CSV 路径")
-    parser.add_argument("--patch-size", type=int, default=32, help="patch 尺寸，需与训练时一致")
+    parser.add_argument("--patch-size", type=int, default=128, help="patch 尺寸，需与训练时一致（默认 128）")
     parser.add_argument("--threshold", type=float, default=0.5, help="认定为球的概率阈值，低于此值视为 FP")
     parser.add_argument("--match", default=None, help="显式指定 match 名称")
     parser.add_argument("--clip", default=None, help="显式指定 clip 名称")

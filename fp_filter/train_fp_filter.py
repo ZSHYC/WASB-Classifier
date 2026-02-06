@@ -2,13 +2,16 @@
 第二步：使用标注好的 manifest（含 label 列）训练二分类模型，用于筛除 FP。
 
 使用示例（在 fp_filter 目录下执行）：cd fp_filter(别忘了！)
+cd fp_filter
 python train_fp_filter.py ^
-  --manifest patch_outputs/patches_match1_clip1/manifest.csv ^
+  --manifest patch_outputs/patches_train1/manifest.csv ^
+            patch_outputs/patches_train2/manifest.csv ^
+            patch_outputs/patches_train3/manifest.csv ^
+            patch_outputs/patches_train4/manifest.csv ^
   --out-dir patch_outputs/model_resnet ^
-  --val-ratio 0.2 ^
   --epochs 50
   
-python train_fp_filter.py --manifest patch_outputs/patches_match1_clip1/manifest.csv --out-dir patch_outputs/model_resnet --epochs 60
+python train_fp_filter.py --manifest patch_outputs/patches_train1/manifest.csv patch_outputs/patches_train2/manifest.csv patch_outputs/patches_train3/manifest.csv patch_outputs/patches_train4/manifest.csv --out-dir patch_outputs/model_resnet --epochs 50
 """
 import os
 import sys
@@ -93,7 +96,7 @@ def evaluate(model, loader, criterion, device):
 
 def main():
     parser = argparse.ArgumentParser(description="训练 FP 过滤二分类模型")
-    parser.add_argument("--manifest", "-m", required=True, help="已标注 label 的 manifest.csv 路径")
+    parser.add_argument("--manifest", "-m", required=True, nargs='+', help="已标注 label 的 manifest.csv 路径（可传多个）")
     parser.add_argument("--out-dir", "-o", default="./outputs/fp_filter", help="保存 checkpoint 与日志的目录")
     parser.add_argument("--val-ratio", type=float, default=0.2, help="验证集比例，默认 0.2")
     parser.add_argument("--epochs", type=int, default=50, help="训练轮数")
@@ -112,7 +115,15 @@ def main():
     transform_train = get_default_transform(is_train=True, patch_size=args.patch_size)
     transform_val = get_default_transform(is_train=False, patch_size=args.patch_size)
 
-    full_dataset = PatchDataset(args.manifest, transform=None, target_one_hot=False)
+    # 支持多个 manifest 文件夹
+    manifest_paths = args.manifest if isinstance(args.manifest, list) else [args.manifest]
+    print(f"加载 {len(manifest_paths)} 个训练数据集:")
+    for mp in manifest_paths:
+        print(f"  - {mp}")
+    
+    # 加载所有数据集并合并
+    all_datasets = [PatchDataset(mp, transform=None, target_one_hot=False) for mp in manifest_paths]
+    full_dataset = torch.utils.data.ConcatDataset(all_datasets)
     n = len(full_dataset)
     if n == 0:
         raise ValueError("manifest 中没有已标注的样本，请先在 manifest 的 label 列填 1(球) 或 0(非球)")
@@ -121,8 +132,11 @@ def main():
     n_train = n - n_val
     indices = np.random.permutation(n)
     train_idx, val_idx = indices[:n_train], indices[n_train:]
-    train_dataset = PatchDataset(args.manifest, transform=transform_train, target_one_hot=False)
-    val_dataset = PatchDataset(args.manifest, transform=transform_val, target_one_hot=False)
+    # 为训练和验证分别创建带 transform 的合并数据集
+    train_datasets = [PatchDataset(mp, transform=transform_train, target_one_hot=False) for mp in manifest_paths]
+    val_datasets = [PatchDataset(mp, transform=transform_val, target_one_hot=False) for mp in manifest_paths]
+    train_dataset = torch.utils.data.ConcatDataset(train_datasets)
+    val_dataset = torch.utils.data.ConcatDataset(val_datasets)
     train_sub = torch.utils.data.Subset(train_dataset, train_idx.tolist())
     val_sub = torch.utils.data.Subset(val_dataset, val_idx.tolist())
 
@@ -132,7 +146,11 @@ def main():
     # ----------------------------------------------------
     # 新增：计算类别权重以解决样本不平衡问题 (High FP / Low TN)
     # ----------------------------------------------------
-    all_labels = full_dataset.df["label"].values
+    # 从所有数据集中统计标签
+    all_labels = []
+    for ds in all_datasets:
+        all_labels.extend(ds.df["label"].values.tolist())
+    all_labels = np.array(all_labels)
     n_neg = (all_labels == 0).sum()
     n_pos = (all_labels == 1).sum()
     print(f"Dataset stats: Total={n}, Pos(1)={n_pos}, Neg(0)={n_neg}")
