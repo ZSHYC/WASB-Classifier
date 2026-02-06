@@ -21,6 +21,8 @@ python visualize_filtered.py ^
     --dataset-root "../src/outputs/main/2026-02-06_11-05-25" ^
     --output-video "patch_outputs/filtered_result.mp4" ^
     --fps 25
+    
+python visualize_filtered.py --csv "../src/outputs/main/2026-02-06_11-05-25/match1_clip1_predictions.csv" --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" --dataset-root "../src/outputs/main/2026-02-06_11-05-25" --output-video "patch_outputs/filtered_result.mp4" --fps 25
 """
 
 import os
@@ -259,6 +261,10 @@ def visualize_video(original_csv, filtered_csv, dataset_root, output_video,
                             continue
                         
                         x, y = float(x), float(y)
+                        
+                        # 检查坐标是否为有限值（排除 inf 和 -inf）
+                        if not (np.isfinite(x) and np.isfinite(y)):
+                            continue
                         
                         # 判断是否为有效检测
                         if vis == 1:

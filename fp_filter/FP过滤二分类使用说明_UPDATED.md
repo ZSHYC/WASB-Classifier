@@ -3,7 +3,7 @@
 通过“先提取 patch → 人工标注 → 训练二分类模型”的方式，筛除检测结果中的假阳性（FP），保留真阳性（TP）。
 
 ---
- 
+
 ## 第一步：从检测结果提取 Patch
 
 在完成 WASB 预测并得到 `match1_clip1_predictions.csv` 后，用脚本从**原始数据集**中，以每个 `visibility=1` 的检测点 (x, y) 为中心截取小图块（patch），并生成供标注用的 manifest。
@@ -19,28 +19,26 @@ python ../fp_filter/extract_patches.py ^
   "outputs/main/2026-02-05_11-10-50/match1_clip1_predictions.csv" ^
   --dataset-root ../datasets/tennis_predict ^
   --output-dir outputs/patches_match1_clip1 ^
-  --patch-size 96
+  --patch-size 128
 ```
 
 - **第一个参数**：预测结果 CSV 的路径。
 - **`--dataset-root`**：原始数据集根目录（与 `configs/dataset/tennis_predict.yaml` 中的 `root_dir` 对应，即帧所在根目录）。
 - **`--output-dir`**：输出目录，将在此生成所有 patch 图片和 `manifest.csv`。
-- **`--patch-size`**：patch 边长（像素），默认 32（常见小目标尺寸）。若第一步用其他尺寸，第二步训练时需用 `--patch-size` 保持一致。
+- **`--patch-size`**：patch 边长（像素），默认 128（常见小目标尺寸）。若第一步用其他尺寸，第二步训练时需用 `--patch-size` 保持一致。
 
-脚本会从 CSV 文件名解析 `match` 和 `clip`（如 `match1_clip1_predictions.csv` → match1, clip1），帧路径为：  
-`dataset_root / match / clip / 文件名`。  
+脚本会从 CSV 文件名解析 `match` 和 `clip`（如 `match1_clip1_predictions.csv` → match1, clip1），帧路径为：
+`dataset_root / match / clip / 文件名`。
 若目录结构不同，可用 `--match`、`--clip` 显式指定。
 
 ### 2. 输出内容
 
 - **`output_dir/*.png`**：以 `(x,y)` 为中心截取的 patch 图。
-- **`output_dir/manifest.csv`**：表格列包括  
-  `patch_id, source_file, x, y, match, clip, patch_path, score, label`。  
+- **`output_dir/manifest.csv`**：表格列包括
+  `patch_id, source_file, x, y, match, clip, patch_path, score, label`。
   其中 **`label` 列为空**，供你标注。
 
-### 3. 标注
-
-#### 方式 A：使用交互式标注脚本（推荐）
+### 3. 使用交互式标注脚本
 
 使用 `fp_filter/label_patches.py` 工具，逐张查看图片并按键标注，效率极高。
 
@@ -57,20 +55,16 @@ python fp_filter/label_patches.py --manifest fp_filter/patch_outputs/patches_mat
 ```
 
 **操作方法**：
+
 - **按 `1`**：标记为 **球 (TP)**，自动保存并跳转下一张。
 - **按 `0`**：标记为 **非球 (FP)**，自动保存并跳转下一张。
 - **按 `B`**：回退到上一张（如果标错了）。
 - **按 `Q`**：保存并退出。
 - **UI 显示**：界面上会实时显示当前图片的标记状态（None / Ball(1) / Background(0)）。
 
-#### 方式 B：手动编辑 CSV
-
-- 打开 `manifest.csv`。
-- 结合图片文件夹查看对应图片。
-- 对每一行在 **`label`** 列填写：`1` (球) 或 `0` (非球)。
-- 保存为 UTF-8（如 Excel 另存为 CSV UTF-8）。
-
 ---
+
+
 
 ## 第二步：训练二分类模型
 
@@ -106,8 +100,6 @@ python ../fp_filter/train_fp_filter.py ^
 - **`outputs/fp_filter/last.pth`**：最后一轮模型。
 - **`outputs/fp_filter/history.json`**：每轮 train/val 的 loss 与 accuracy。
 
----
-
 ## 模型与数据说明
 
 - **Patch 尺寸**：默认 96×96。可在第一步、第二步用同一 `--patch-size` 修改。
@@ -142,3 +134,56 @@ python ../fp_filter/inference.py ^
 - **`--threshold`**：分类阈值（默认 0.5），低于此值的检测点将被视为 FP（`visibility` 置为 0）。
 
 脚本会生成一个新的 CSV 文件，其中包含过滤后的结果，并增加 `fp_score` 列记录二分类模型的打分。
+
+---
+
+## 第四步：可视化过滤结果
+
+为了更直观地评估 FP 过滤效果，仓库中提供了一个可视化脚本 `fp_filter/visualize_filtered.py`。脚本支持生成带标注的图片或合成对比视频，用于查看每一帧上哪些检测被保留、哪些被过滤。
+
+### 左/右画面说明
+
+- 如果以**对比视频或并排显示**方式查看（外部播放器或你另行实现）：
+  - **左侧（Original / 原始检测）**：显示模型原始预测中的所有检测点（即推理 CSV 中的所有 visibility=1 条目），用于展示未经 FP 过滤前的检测分布。
+  - **右侧（Filtered / 过滤后）**：显示经过 FP 过滤器处理后的结果（脚本会将低于阈值的检测标为不可见或移除），用于对比哪些点被认定为 FP 并被去掉。
+- 我们提供的 `visualize_filtered.py` 默认并**不**生成真正的左右两图合成，而是在单张图上用不同颜色同时标注原始/过滤后的状态：
+  - **绿色圆点**：保留的检测（TP，模型判断为球）。
+  - **红色圆点**：被过滤的检测（FP，模型判断为非球）。
+  - 可选 `--show-scores` 将在点旁显示 `fp_score`（保留概率）。
+
+### 快速使用（图片）
+
+在 `fp_filter` 下运行（示例）：
+
+```powershell
+python visualize_filtered.py \
+  --csv "../src/outputs/main/2026-02-06_11-05-25/match1_clip1_predictions.csv" \
+  --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" \
+  --dataset-root "../src/outputs/main/2026-02-06_11-05-25" \
+  --output-dir "patch_outputs/visualizations" \
+  --sample-rate 10 \
+  --show-scores
+```
+
+### 生成对比视频（示例）
+
+```powershell
+python visualize_filtered.py \
+  --csv "../src/outputs/main/2026-02-06_11-05-25/match1_clip1_predictions.csv" \
+  --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" \
+  --dataset-root "../src/outputs/main/2026-02-06_11-05-25" \
+  --output-video "patch_outputs/filtered_result.mp4" \
+  --fps 25 \
+  --show-scores
+```
+
+### 常见问题与注意事项
+
+- 如果脚本提示找不到图片（"图像目录" 或 "图片不存在"），通常是因为 CSV 中的 `file name` 与 `dataset_root` 下的文件命名/目录结构不一致。常见两种目录格式：
+  - `dataset_root/match/clip/<file.jpg>`（两层目录）
+  - `dataset_root/match_clip`（单层目录，包含下划线）
+    `visualize_filtered.py` 会尝试两者，但请确认 `--dataset-root` 指向正确的父目录。
+- CSV 中若存在 `-inf`、`inf` 等非常值，会被跳过（脚本已自动过滤非有限坐标）。建议在运行前确认 CSV 中 `x-coordinate, y-coordinate` 的有效性。
+- 若希望真正显示左右并排对比，可将两张图水平拼接后保存或在播放器中并列展示；`visualize_filtered.py` 可按需改为生成并排图。
+
+---
