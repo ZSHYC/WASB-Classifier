@@ -6,23 +6,23 @@ cd fp_filter
 
 # 可视化过滤后的结果（保存为图片）
 python visualize_filtered.py ^
-    --csv "../src/outputs/main/2026-02-06_11-05-25/match1_clip1_predictions.csv" ^
+    --csv "../src/outputs/main/2026-02-06_16-46-34/match1_clip1_predictions.csv" ^
     --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" ^
-    --dataset-root "../src/outputs/main/2026-02-06_11-05-25" ^
+    --dataset-root "../src/outputs/main/2026-02-06_16-46-34" ^
     --output-dir "patch_outputs/visualizations" ^
     --sample-rate 10
     
-python visualize_filtered.py --csv "../src/outputs/main/2026-02-06_11-05-25/match1_clip1_predictions.csv" --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" --dataset-root "../src/outputs/main/2026-02-06_11-05-25" --output-dir "patch_outputs/visualizations" --sample-rate 10
+python visualize_filtered.py --csv "../src/outputs/main/2026-02-06_16-46-34/match1_clip1_predictions.csv" --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" --dataset-root "../src/outputs/main/2026-02-06_16-46-34" --output-dir "patch_outputs/visualizations" --sample-rate 10
 
 # 生成对比视频
 python visualize_filtered.py ^
-    --csv "../src/outputs/main/2026-02-06_11-05-25/match1_clip1_predictions.csv" ^
+    --csv "../src/outputs/main/2026-02-06_16-46-34/match1_clip1_predictions.csv" ^
     --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" ^
-    --dataset-root "../src/outputs/main/2026-02-06_11-05-25" ^
+    --dataset-root "../src/outputs/main/2026-02-06_16-46-34" ^
     --output-video "patch_outputs/filtered_result.mp4" ^
     --fps 25
     
-python visualize_filtered.py --csv "../src/outputs/main/2026-02-06_12-24-13/match1_clip1_predictions.csv" --filtered-csv "patch_outputs/patches_prediction2/match1_clip1_predictions_filtered.csv" --dataset-root "../src/outputs/main/2026-02-06_12-24-13" --output-video "patch_outputs/filtered_result2.mp4" --fps 25
+python visualize_filtered.py --csv "../src/outputs/main/2026-02-06_16-46-34/match1_clip1_predictions.csv" --filtered-csv "patch_outputs/patches_prediction/match1_clip1_predictions_filtered.csv" --dataset-root "../src/outputs/main/2026-02-06_16-46-34" --output-video "patch_outputs/filtered_result2.mp4" --fps 25
 """
 
 import os

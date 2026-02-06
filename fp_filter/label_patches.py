@@ -2,11 +2,11 @@
 交互式标注工具：读取 manifest.csv，逐个显示 patch，通过键盘输入标签（1=球，0=非球），并实时保存。
 极大提高手动标注效率，无需在 Excel 和图片浏览器之间切换。
 
-使用示例（默认在项目根目录下执行）：
-python fp_filter/label_patches.py --manifest fp_filter/patch_outputs/patches_match1_clip1/manifest.csv --size 512
+使用示例（默认在fp_filter目录下执行）：cd fp_filter(别忘了！)
+python label_patches.py --manifest patch_outputs/patches_train3/manifest.csv --size 512
 
 从第100张开始标注：
-python fp_filter/label_patches.py --manifest fp_filter/patch_outputs/patches_match1_clip1/manifest.csv --size 512 --start-from 100
+python label_patches.py --manifest patch_outputs/patches_train3/manifest.csv --size 512 --start-from 100
 """
 
 import os
